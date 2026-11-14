@@ -1,0 +1,77 @@
+[mod]
+id = "pickup_villagers"
+version = "1.0.0"
+priority = 100
+
+# Pickup Villagers, a port of ClickVillagers' pickup (Clickism, GPL-3.0): sneak and
+# right click a villager to take it as a head, right click a block with the head
+# to place it back. The world's server (single player's own thread, a LAN host)
+# does both.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game/lan_trading.rs"
+name = "pickup_villagers"
+source = "runtime.rs"
+
+[[module]]
+id = "heads"
+file = "crates/horizon-client/src/game/lan_trading.rs"
+name = "pickup_villager_heads"
+source = "textures.rs"
+
+# The server sends a player the components a picked-up villager lives in
+# (custom data, lore, the head's profile), as vanilla's server does: a creative
+# inventory that sends the stack back keeps the villager.
+[[module]]
+id = "components"
+file = "crates/horizon-client/src/lan/guest.rs"
+name = "pickup_villagers_components"
+source = "components.rs"
+
+[[injection]]
+id = "send-components"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::lan::guest::stack_to_network"
+helper = "send_components.rs"
+bindings = [
+    { name = "item_id", ty = "&dyn Fn(&str) -> i32", value = "&item_id" },
+    { name = "synced_id", ty = "&dyn Fn(&str, &str) -> Option<i32>", value = "&synced_id" },
+    { name = "s", ty = "&Option<crate::items::ItemStack>", value = "s" },
+]
+
+# Options > Mods lists it, with its switch.
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+    { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# ClickVillagers' PickupVillagerListener: the first step of a right click on a
+# mob (after the block-in-front check), so the villager's own trading never opens.
+[[injection]]
+id = "pickup"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::names::Game<'_>::name_mob"
+helper = "pickup.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "index", ty = "usize", value = "index" },
+]
+
+# ClickVillagers' PlaceVillagerListener: the first item use on a block, after the
+# block itself had its turn and before a head would be placed.
+[[injection]]
+id = "place"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::growth::Game<'_>::use_bone_meal"
+helper = "place.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "stack", ty = "&ItemStack", value = "stack" },
+]
