@@ -36,8 +36,9 @@ def main():
     mod_id, version = manifest["mod"]["id"], manifest["mod"]["version"]
     if bundle.name != mod_id:
         raise SystemExit(f"the bundle folder {bundle.name} is not named after its id {mod_id}")
+    # Right after the [mod] table (its first blank line).
     pinned = text.replace(
-        "\n[[", f'\n# The commit this release was built and tested on.\n[compatibility]\nhorizon_revision = "{args.horizon}"\n\n[[', 1
+        "\n\n", f'\n\n# The commit this release was built and tested on.\n[compatibility]\nhorizon_revision = "{args.horizon}"\n\n', 1
     )
     files = {
         "horizon-native.json": (json.dumps({"schema": 1, "id": mod_id, "version": version, "game": args.game,
